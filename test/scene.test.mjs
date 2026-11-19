@@ -173,3 +173,20 @@ test('T-PLAY-05 传入的 lookup 再宽松，isExact 仍必须把关', () => {
   assert.equal(只信lookup('太绝绝子了', 危险lookup), '太绝绝子了',
     '这条断言证明：不隔离就会把整句当词名（正是我们要防的）')
 })
+
+// 未命中分支（解释场景不能静默丢弃 —— 静默的话模型会自由发挥编释义）
+import { 判定场景 as 判 } from '../lib/gate.mjs'
+
+test('T-MISS-01 解释场景 + 库中未命中 → 仍判解释（交给上层给"别硬编"约束）', () => {
+  const empty = () => null
+  const r = 判('蚌埠住了是什么意思', empty, empty)
+  assert.equal(r.scene, '解释', '明确在问就必须判解释，不能因为库里没有就静默丢掉')
+  assert.equal(r.query, '蚌埠住了', '主语必须是完整词，不能剥成「蚌埠住」')
+  assert.match(r.reason, /未命中/)
+})
+
+test('T-MISS-02 玩梗场景 + 库中未命中 → 不触发（不该凭空注入）', () => {
+  const empty = () => null
+  const r = 判('我也不知道说啥好', empty, empty)
+  assert.equal(r.scene, null)
+})
