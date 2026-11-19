@@ -1,7 +1,7 @@
 {
   "name": "dsh-memewiki",
-  "version": "0.1.20",
-  "description": "梗百科：6792 条梗/黑话词库，自动查梗并注入上下文，不让模型硬猜。支持一键下载社区最新词库、提交新梗，与社区共创。",
+  "version": "0.2.0",
+  "description": "梗百科（本机 fork 版）：6792+ 条梗/黑话词库，问到梗时自动查词并注入上下文。本 fork 只自用，不同步上游。",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
@@ -48,10 +48,11 @@
   "author": "thawline",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/thawline/dsh-memewiki.git"
+    "url": "git+https://github.com/RevxZxCx/dsh-memewiki.git"
   },
-  "homepage": "https://github.com/thawline/dsh-memewiki#readme",
+  "homepage": "https://github.com/RevxZxCx/dsh-memewiki#readme",
   "bugs": {
-    "url": "https://github.com/thawline/dsh-memewiki/issues"
-  }
+    "url": "https://github.com/RevxZxCx/dsh-memewiki/issues"
+  },
+  "memeWikiUpstream": "https://github.com/thawline/dsh-memewiki"
 }
