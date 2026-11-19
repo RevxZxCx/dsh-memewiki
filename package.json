@@ -16,7 +16,8 @@
     "data",
     "scripts",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "test"
   ],
   "dsh": {
     "bundle": {
@@ -54,5 +55,8 @@
   "bugs": {
     "url": "https://github.com/RevxZxCx/dsh-memewiki/issues"
   },
-  "memeWikiUpstream": "https://github.com/thawline/dsh-memewiki"
+  "memeWikiUpstream": "https://github.com/thawline/dsh-memewiki",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
 }
