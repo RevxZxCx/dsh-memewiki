@@ -89,3 +89,67 @@ test('T-PEND-08 now 为 NaN 时 fail-closed（双保险，实测两层都能挡�
     assert.equal(r, null, `now=${String(badNow)} 必须 fail-closed（NaN > ttl 恒 false 是个经典假绿）`)
   }
 })
+
+test('T-PEND-09 轮换后的真实 sid 对不上派生 sid 时，必须靠回退命中（真机踩过的死代码坑）', () => {
+  // 真实场景：session.id = 99796c1e…（轮换产生的随机 UUID），
+  //          桥接写的键 = 58b01b50…（sessionIdFor(appId,'group',本群)）
+  // 只按真实 id 查是**永远不命中**的死代码。
+  const 真实sid = '99796c1e-8844-42ce-ba49-3341b5a1837f'
+  const 派生sid = '58b01b50-8eae-1c29-daef-c2e1c599fe83'
+  const now = 1_000_000
+  const store = fakeStore({ [`pending:sid:${派生sid}`]: 快照('yyds到底是什么意思', now - 100) })
+
+  // ① 只按真实 sid 查 → 读不到（证明这是死代码）
+  assert.equal(readPendingMessage(store, { scope: `sid:${真实sid}`, now, sessionId: 真实sid }), null)
+
+  // ② 按派生 sid 查 → 命中
+  const hit = readPendingMessage(store, { scope: `sid:${派生sid}`, now, sessionId: 派生sid })
+  assert.equal(hit?.text, 'yyds到底是什么意思')
+})
+
+test('T-PEND-10 三重回退顺序：真实 sid 优先于派生 sid', () => {
+  const 真实sid = '99796c1e-8844-42ce-ba49-3341b5a1837f'
+  const 派生sid = '58b01b50-8eae-1c29-daef-c2e1c599fe83'
+  const now = 1_000_000
+  // 两个键同时存在时，取真实 sid 那条（更新更准）
+  const store = fakeStore({
+    [`pending:sid:${真实sid}`]: 快照('最新的', now - 10),
+    [`pending:sid:${派生sid}`]: 快照('旧的', now - 500),
+  })
+  assert.equal(readPendingMessage(store, { scope: `sid:${真实sid}`, now, sessionId: 真实sid })?.text, '最新的')
+})
+
+test('T-PEND-11 取不到 scope 时兜底扫描最新 freshest（真机实测 session 上没有 group_openid）', async () => {
+  const { readLatestFreshPending } = await import('../lib/pending.mjs')
+  const now = 1_000_000
+  const store = {
+    db: {
+      prepare: () => ({
+        all: () => [
+          { k: 'pending:group:AAAA', v: 快照('旧的群消息', now - 60_000) },
+          { k: 'pending:group:BBBB', v: 快照('最新的', now - 100) },
+          { k: 'pending:group:CCCC', v: 快照('过期的', now - 200_000) },
+          { k: 'pending:group:DDDD', v: '{坏JSON' },
+        ],
+      }),
+    },
+  }
+  const hit = readLatestFreshPending(store, { now })
+  assert.equal(hit.text, '最新的', '应取 120s 内 at 最大的那条')
+  assert.equal(hit.key, 'pending:group:BBBB')
+})
+
+test('T-PEND-12 兜底扫描：全部过期时返回 null（绝不拿旧消息冒充本轮）', async () => {
+  const { readLatestFreshPending } = await import('../lib/pending.mjs')
+  const now = 1_000_000
+  const store = {
+    db: { prepare: () => ({ all: () => [{ k: 'pending:group:X', v: 快照('很久以前', now - 999_999) }] }) },
+  }
+  assert.equal(readLatestFreshPending(store, { now }), null)
+})
+
+test('T-PEND-13 兜底扫描：now 非法 fail-closed', async () => {
+  const { readLatestFreshPending } = await import('../lib/pending.mjs')
+  const store = { db: { prepare: () => ({ all: () => [{ k: 'pending:group:X', v: 快照('x', 1) }] }) } }
+  assert.equal(readLatestFreshPending(store, { now: NaN }), null)
+})
