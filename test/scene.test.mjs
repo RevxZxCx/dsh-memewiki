@@ -190,3 +190,12 @@ test('T-MISS-02 玩梗场景 + 库中未命中 → 不触发（不该凭空注�
   const r = 判('我也不知道说啥好', empty, empty)
   assert.equal(r.scene, null)
 })
+
+test('T-EXPL-05 主语尾巴的「到底/究竟」要剥，但单字「了」不能剥（真机踩到两个方向）', () => {
+  // ① 剥「到底」：否则查「我Chovy到底」，库里有「我Chovy」也查不到
+  assert.equal(判定场景('我Chovy到底啥意思', lookup, isExact).query, '我Chovy')
+  // ② 不剥「了」：「蚌埠住了」的「了」是词的一部分，剥了就变「蚌埠住」
+  const db2 = { '蚌埠住了': {} }
+  const lk = (q) => db2[q] || null
+  assert.equal(判定场景('蚌埠住了是什么意思', lk, lk).query, '蚌埠住了')
+})
